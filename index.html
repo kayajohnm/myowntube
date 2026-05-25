@@ -4,177 +4,400 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="strict-origin-when-cross-origin">
-    <title>MyOwnTube Dashboard</title>
+    <title>MyOwnTube Subscriptions</title>
     <style>
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
+            --bg-color: #0f0f0f;
+            --card-bg: #1f1f1f;
             --text-color: #f1f1f1;
-            --text-secondary: #aaa;
+            --text-secondary: #aaaaaa;
             --accent-color: #ff0000;
+            --border-color: #3f3f3f;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 16px;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
         }
-        h1 {
-            font-size: 24px;
-            color: var(--accent-color);
-            margin-bottom: 20px;
+        
+        /* Fixed Top Subscriptions Navigation Bar */
+        .header-nav {
+            position: sticky;
+            top: 0;
+            background-color: var(--bg-color);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 12px 0;
+        }
+        .channel-bar {
+            display: flex;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 0 16px;
+            gap: 16px;
+        }
+        /* Hide scrollbars but keep functionality */
+        .channel-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .channel-bar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Channel Bubble Item */
+        .channel-bubble {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            min-width: 72px;
             text-align: center;
         }
-        #video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+        .avatar-frame {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: #fff;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .avatar-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .channel-bubble.active .avatar-frame {
+            border-color: var(--text-color);
+            transform: scale(1.05);
+        }
+        .channel-bubble-title {
+            font-size: 11px;
+            margin-top: 6px;
+            color: var(--text-secondary);
+            width: 70px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .channel-bubble.active .channel-bubble-title {
+            color: var(--text-color);
+            font-weight: bold;
+        }
+
+        /* Main Content Feed Containers */
+        .feed-container {
+            padding: 16px;
             max-width: 1200px;
             margin: 0 auto;
         }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 24px 0 12px 0;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 8px;
+        }
+
+        /* Horizontal Playlists Shelf Layout */
+        .playlist-shelf {
+            display: flex;
+            overflow-x: auto;
+            gap: 14px;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .playlist-shelf::-webkit-scrollbar {
+            height: 4px;
+        }
+        .playlist-shelf::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+        .playlist-card {
+            min-width: 160px;
+            max-width: 160px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 8px;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .playlist-thumb-placeholder {
+            height: 90px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            position: relative;
+        }
+        .playlist-badge {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.8);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+        }
+        .playlist-title {
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 1.3;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* Video Feed Grid Layout */
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
         .video-card {
             background-color: var(--card-bg);
-            border-radius: 12px;
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
         .video-wrapper {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            padding-bottom: 56.25%;
             height: 0;
         }
         .video-wrapper iframe {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             border: 0;
         }
         .video-info {
-            padding: 12px;
+            padding: 10px;
         }
         .video-title {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: bold;
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             line-height: 1.4;
             display: -webkit-box;
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
-        .channel-title {
-            font-size: 12px;
+        .video-date {
+            font-size: 11px;
             color: var(--text-secondary);
             margin: 0;
         }
-        .error-msg {
-            grid-column: 1 / -1;
+        
+        .status-msg {
             text-align: center;
             color: var(--text-secondary);
             padding: 40px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
 
-    <h1>My Tube Feed</h1>
-    <div id="video-grid">Loading latest videos...</div>
+    <div class="header-nav">
+        <div class="channel-bar" id="channel-bar"></div>
+    </div>
+
+    <div class="feed-container">
+        <div id="playlists-section" style="display:none;">
+            <div class="section-title">Playlists</div>
+            <div class="playlist-shelf" id="playlist-shelf"></div>
+        </div>
+        
+        <div id="videos-section">
+            <div class="section-title" id="videos-title">Videos</div>
+            <div class="video-grid" id="video-grid"><div class="status-msg">Select a channel above to load feed...</div></div>
+        </div>
+    </div>
 
     <script>
-        // Your core channels array
+        // Full curated clean arrays list
         const channelIds = [
+            'UCGFXgWH3U0LNVf9x8y72hAw', // Seyit Nurfethi Erkal
+            'UCDqghksHccTbxo0x0O6dGVg', // Everstar Studios
+            'UCtq7rSJy73Mq9UdKCW7_rpA', // Cinar Medya
+            'UCb9KJpGciH00WjN6BYxnQ2w', // Mehmet Akar
+            'UCYNVnafHg0SnXSLaxmUrltw', // Kuran Time
+            'UCZjAPUxgPYabp0_Ane7JLNA', // Ahmet Kurucan
             'UC7ZpL9AMZ7_EAsCmsS6jS_A', // More Perfect Union
+            'UCYRaQjT_w6jVHNHB0y1BpTA', // Risale-i Nur Fihrsiti
             'UCHTUAizKKQh07g5JXo_aiAA', // Respect Graduate School
-            'UCDxiNlJ2t-4JUuoslZgOKgw', //Respect Turkce
-            'UC1Gj8XdA6VnpgqZT2qarvvQ', //Friends of Respect.
-            'UCT4EZVHHxIzYk8Xda3nhLQQ', //Hamdullah Ozturk
-            'UCGFXgWH3U0LNVf9x8y72hAw', //Seyit Nurfethi Erkal
-            'UCL8DzjUy5Mknf4iM3hrds-w', //Emine Eroglu
-            'UCJS9pqu9BzkAMNTmIX_C_Yg', // Google Cloud Tech
-            
+            'UCDxiNlJ2t-4JUuoslZgOKgw', // Respect Turkce
+            'UC1Gj8XdA6VnpgqZT2qarvvQ', // Friends of Respect
+            'UCT4EZVHHxIzYk8Xda3nhLQQ', // Hamdullah Ozturk
+            'UCL8DzjUy5Mknf4iM3hrds-w', // Emine Eroglu
+            'UC_x5XG10V2P6uZZ5FSM9Ttw', // Google For Developers
+            'UCJS9pqu9BzkAMNTmIX_C_Yg'  // Google Cloud Tech
         ];
 
         // Paste your secure Google Cloud API key here
         const API_KEY = 'YOUR_API_KEY_HERE';
+        
+        let channelsCache = {}; // Local memory allocation to prevent repeated title lookups
 
-        async function fetchLatestVideos() {
-            const grid = document.getElementById('video-grid');
-            let allVideos = [];
-
-            for (const channelId of channelIds) {
-                try {
-                    // Step 1: Query Google to grab the dynamic, true Uploads Playlist ID
-                    const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`;
-                    const channelResponse = await fetch(channelUrl);
-                    const channelData = await channelResponse.json();
-
-                    if (!channelData.items || channelData.items.length === 0) {
-                        console.error(`Could not locate configuration details for: ${channelId}`);
-                        continue;
-                    }
-
-                    // Extracts the precise playlist key assigned by YouTube
-                    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
-
-                    // Step 2: Grab the 5 latest items from that specific verified playlist container
-                    const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=${uploadsPlaylistId}&key=${API_KEY}`;
-                    const playlistResponse = await fetch(playlistUrl);
-                    const playlistData = await playlistResponse.json();
-
-                    if (playlistData.items) {
-                        playlistData.items.forEach(item => {
-                            allVideos.push({
-                                title: item.snippet.title,
-                                videoId: item.snippet.resourceId.videoId,
-                                channelTitle: item.snippet.channelTitle,
-                                publishedAt: new Date(item.snippet.publishedAt)
-                            });
-                        });
-                    }
-                } catch (error) {
-                    console.error("Network error mapping data strings:", error);
-                }
-            }
-
-            // Unify, sort chronologically, and render
-            allVideos.sort((a, b) => b.publishedAt - a.publishedAt);
-            displayVideos(allVideos);
-        }
-
-        function displayVideos(videos) {
-            const grid = document.getElementById('video-grid');
+        // Build Navigation UI on start
+        async function buildChannelNavigation() {
+            const bar = document.getElementById('channel-bar');
+            bar.innerHTML = '';
             
-            if (videos.length === 0) {
-                grid.innerHTML = '<div class="error-msg">No videos found. Check background console configurations.</div>';
-                return;
-            }
-
-            grid.innerHTML = ''; 
-
-            videos.forEach(video => {
-                const card = document.createElement('div');
-                card.className = 'video-card';
-                card.innerHTML = `
-                    <div class="video-wrapper">
-                        <iframe 
-                            src="https://www.youtube-nocookie.com/embed/${video.videoId}" 
-                            referrerpolicy="strict-origin-when-cross-origin" 
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                    <div class="video-info">
-                        <p class="video-title">${video.title}</p>
-                        <p class="channel-title">${video.channelTitle}</p>
-                    </div>
+            // Loop array metadata to create fast visual bubbles placeholders
+            for (const id of channelIds) {
+                const bubble = document.createElement('div');
+                bubble.className = 'channel-bubble';
+                bubble.id = `bubble-${id}`;
+                
+                // Temporary initials while executing metadata download
+                const initial = id.substring(2,4).toUpperCase();
+                bubble.innerHTML = `
+                    <div class="avatar-frame" id="avatar-${id}">${initial}</div>
+                    <div class="channel-bubble-title" id="title-${id}">Loading...</div>
                 `;
-                grid.appendChild(card);
-            });
+                
+                bubble.addEventListener('click', () => loadTargetChannelFeed(id));
+                bar.appendChild(bubble);
+            }
+            
+            // Load live details (names/avatars) from Google
+            fetchChannelMetadata();
         }
 
-        fetchLatestVideos();
+        async function fetchChannelMetadata() {
+            try {
+                // Batch requests in chunks of 50 to optimize network load
+                const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet,contentDetails&id=${channelIds.join(',')}&key=${API_KEY}`;
+                const res = await fetch(url);
+                const data = await res.json();
+
+                if (data.items) {
+                    data.items.forEach(item => {
+                        const id = item.id;
+                        const title = item.snippet.title;
+                        const thumb = item.snippet.thumbnails.default.url;
+                        const uploadsId = item.contentDetails.relatedPlaylists.uploads;
+
+                        // Cache configuration values
+                        channelsCache[id] = { title, uploadsId };
+
+                        // Update bubble interface instantly
+                        document.getElementById(`title-${id}`).innerText = title;
+                        document.getElementById(`avatar-${id}`).innerHTML = `<img src="${thumb}" alt="${title}">`;
+                    });
+                    
+                    // Auto-load the first channel on startup
+                    if (channelIds.length > 0) loadTargetChannelFeed(channelIds[0]);
+                }
+            } catch (err) {
+                console.error("Metadata resolution timeout:", err);
+            }
+        }
+
+        async function loadTargetChannelFeed(activeId) {
+            // Update active states in navigation row
+            document.querySelectorAll('.channel-bubble').forEach(b => b.classList.remove('active'));
+            const selectedBubble = document.getElementById(`bubble-${activeId}`);
+            if (selectedBubble) selectedBubble.classList.add('active');
+
+            const videoGrid = document.getElementById('video-grid');
+            const playlistShelf = document.getElementById('playlist-shelf');
+            const playlistSec = document.getElementById('playlists-section');
+            
+            videoGrid.innerHTML = '<div class="status-msg">Fetching latest content tracks...</div>';
+            playlistSec.style.display = 'none';
+
+            const cached = channelsCache[activeId];
+            if (!cached) return;
+
+            document.getElementById('videos-title').innerText = `${cached.title} - Latest Videos`;
+
+            // Execute parallel fetch tracking lines (Costs exactly 2 tokens absolute)
+            try {
+                const videosPromise = fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=10&playlistId=${cached.uploadsId}&key=${API_KEY}`).then(r => r.json());
+                const playlistsPromise = fetch(`https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&maxResults=10&channelId=${activeId}&key=${API_KEY}`).then(r => r.json());
+
+                const [videoData, playlistData] = await Promise.all([videosPromise, playlistsPromise]);
+
+                // Render Videos
+                videoGrid.innerHTML = '';
+                if (videoData.items && videoData.items.length > 0) {
+                    videoData.items.forEach(item => {
+                        const vId = item.snippet.resourceId.videoId;
+                        const title = item.snippet.title;
+                        const date = new Date(item.snippet.publishedAt).toLocaleDateString();
+
+                        const card = document.createElement('div');
+                        card.className = 'video-card';
+                        card.innerHTML = `
+                            <div class="video-wrapper">
+                                <iframe src="https://www.youtube-nocookie.com/embed/${vId}" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                            </div>
+                            <div class="video-info">
+                                <p class="video-title">${title}</p>
+                                <p class="video-date">${date}</p>
+                            </div>
+                        `;
+                        videoGrid.appendChild(card);
+                    });
+                } else {
+                    videoGrid.innerHTML = '<div class="status-msg">No long-form uploads found on this channel.</div>';
+                }
+
+                // Render Playlists Row
+                if (playlistData.items && playlistData.items.length > 0) {
+                    playlistShelf.innerHTML = '';
+                    playlistSec.style.display = 'block';
+                    
+                    playlistData.items.forEach(pl => {
+                        const plId = pl.id;
+                        const plTitle = pl.snippet.title;
+                        const plCount = pl.contentDetails.itemCount;
+
+                        const plCard = document.createElement('a');
+                        plCard.className = 'playlist-card';
+                        plCard.href = `https://www.youtube.com/playlist?list=${plId}`;
+                        plCard.target = '_blank';
+                        plCard.innerHTML = `
+                            <div class="playlist-thumb-placeholder">
+                                📂 Playlist
+                                <div class="playlist-badge">${plCount} videos</div>
+                            </div>
+                            <p class="playlist-title">${plTitle}</p>
+                        `;
+                        playlistShelf.appendChild(plCard);
+                    });
+                }
+
+            } catch (err) {
+                console.error("Feed aggregation sync breakdown:", err);
+                videoGrid.innerHTML = '<div class="status-msg">Error parsing layout feed data.</div>';
+            }
+        }
+
+        // Initialize Native App Shell Loop
+        buildChannelNavigation();
     </script>
 </body>
 </html>
