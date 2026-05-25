@@ -84,19 +84,21 @@
     <div id="video-grid">Loading latest videos...</div>
 
     <script>
-        // 1. Paste your specific Channel IDs inside this array
+        // Your core channels array
         const channelIds = [
-            'UC7ZpL9AMZ7_EAsCmsS6jS_A',
-            'UC1Gj8XdA6VnpgqZT2qarvvQ',
-            'UCT4EZVHHxIzYk8Xda3nhLQQ',
-            'UC_x5XG10V2P6uZZ5FSM9Ttw',
-            'UCJS9pqu9BzkAMNTmIX_C_Yg',//Google Cloud Tech
-            ''
+            'UC7ZpL9AMZ7_EAsCmsS6jS_A', // More Perfect Union
+            'UCHTUAizKKQh07g5JXo_aiAA', // Respect Graduate School
+            'UCDxiNlJ2t-4JUuoslZgOKgw', //Respect Turkce
+            'UC1Gj8XdA6VnpgqZT2qarvvQ', //Friends of Respect.
+            'UCT4EZVHHxIzYk8Xda3nhLQQ', //Hamdullah Ozturk
+            'UCGFXgWH3U0LNVf9x8y72hAw', //Seyit Nurfethi Erkal
+            'UCL8DzjUy5Mknf4iM3hrds-w', //Emine Eroglu
+            'UCJS9pqu9BzkAMNTmIX_C_Yg', // Google Cloud Tech
             
         ];
 
-        // 2. Paste your Google Cloud API key here
-        const API_KEY = 'AIzaSyDcqrogTtzb739J_q6V8sDRZMbhlquEQAQ';
+        // Paste your secure Google Cloud API key here
+        const API_KEY = 'YOUR_API_KEY_HERE';
 
         async function fetchLatestVideos() {
             const grid = document.getElementById('video-grid');
@@ -104,22 +106,26 @@
 
             for (const channelId of channelIds) {
                 try {
-                    // Secret Quota Trick: Converts Channel ID (UC...) to Uploads Playlist ID (UU...)
-                    const uploadsPlaylistId = 'UU' + channelId.substring(2);
+                    // Step 1: Query Google to grab the dynamic, true Uploads Playlist ID
+                    const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${API_KEY}`;
+                    const channelResponse = await fetch(channelUrl);
+                    const channelData = await channelResponse.json();
 
-                    // Fetch the 5 latest videos directly from the uploads playlist (Only 1 quota unit!)
-                    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=${uploadsPlaylistId}&key=${API_KEY}`;
-                    
-                    const response = await fetch(url);
-                    const data = await response.json();
-
-                    if (data.error) {
-                        console.error(`API Error for channel ${channelId}:`, data.error.message);
-                        continue; 
+                    if (!channelData.items || channelData.items.length === 0) {
+                        console.error(`Could not locate configuration details for: ${channelId}`);
+                        continue;
                     }
 
-                    if (data.items) {
-                        data.items.forEach(item => {
+                    // Extracts the precise playlist key assigned by YouTube
+                    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+
+                    // Step 2: Grab the 5 latest items from that specific verified playlist container
+                    const playlistUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=${uploadsPlaylistId}&key=${API_KEY}`;
+                    const playlistResponse = await fetch(playlistUrl);
+                    const playlistData = await playlistResponse.json();
+
+                    if (playlistData.items) {
+                        playlistData.items.forEach(item => {
                             allVideos.push({
                                 title: item.snippet.title,
                                 videoId: item.snippet.resourceId.videoId,
@@ -129,13 +135,12 @@
                         });
                     }
                 } catch (error) {
-                    console.error("Network error fetching channel data:", error);
+                    console.error("Network error mapping data strings:", error);
                 }
             }
 
-            // Sort all videos from all channels combined so the newest releases are at the very top
+            // Unify, sort chronologically, and render
             allVideos.sort((a, b) => b.publishedAt - a.publishedAt);
-
             displayVideos(allVideos);
         }
 
@@ -143,11 +148,11 @@
             const grid = document.getElementById('video-grid');
             
             if (videos.length === 0) {
-                grid.innerHTML = '<div class="error-msg">No videos found. (If you recently ran out of API quota, your limits will reset back to full at midnight Pacific Time!)</div>';
+                grid.innerHTML = '<div class="error-msg">No videos found. Check background console configurations.</div>';
                 return;
             }
 
-            grid.innerHTML = ''; // Clear loading indicator
+            grid.innerHTML = ''; 
 
             videos.forEach(video => {
                 const card = document.createElement('div');
@@ -169,7 +174,6 @@
             });
         }
 
-        // Initialize feed on page load
         fetchLatestVideos();
     </script>
 </body>
